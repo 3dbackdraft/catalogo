@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#4d1d93">
+  <meta name="description" content="Catálogo de productos personalizados de 3D Backdraft.">
+  <title>Catálogo · 3D Backdraft</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo-3d-backdraft.png" alt="">
+      <span><strong>3D Backdraft</strong><small>Objetos únicos, hechos para vos</small></span>
+    </div>
+    <button id="cart-button" class="cart-button" aria-controls="cart" aria-expanded="false">Carrito <b id="cart-count">0</b></button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Impresión 3D personalizada</p>
+        <h1>Pequeñas ideas.<br><em>Grandes objetos.</em></h1>
+        <p>Elegí un diseño y personalizalo en tus colores. Lo fabricamos especialmente para vos en aproximadamente 3 días.</p>
+        <a href="#productos" class="primary-link">Explorar productos</a>
+      </div>
+      <div class="hero-shape" aria-hidden="true"><span>3D</span></div>
+    </section>
+
+    <section class="benefits">
+      <div><b>✦</b><span><strong>Personalizable</strong><small>Colores y detalles a elección</small></span></div>
+      <div><b>◷</b><span><strong>Producción en 3 días</strong><small>Hecho especialmente para vos</small></span></div>
+      <div><b>⌖</b><span><strong>Desde Pergamino</strong><small>Consultá opciones de entrega</small></span></div>
+    </section>
+
+    <section id="productos" class="catalog">
+      <div class="catalog-heading">
+        <div><p class="eyebrow">Nuestro catálogo</p><h2>Encontrá tu próxima pieza</h2></div>
+        <span id="result-count"></span>
+      </div>
+      <div class="filters">
+        <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Buscar productos…"></label>
+        <div id="categories" class="categories"></div>
+      </div>
+      <div id="products" class="products" aria-live="polite"></div>
+      <div id="empty" class="empty" hidden>No encontramos productos con esos filtros.</div>
+    </section>
+  </main>
+
+  <aside id="cart" class="cart" aria-hidden="true">
+    <div class="cart-head"><div><p class="eyebrow">Tu selección</p><h2>Carrito</h2></div><button id="close-cart" aria-label="Cerrar">×</button></div>
+    <div id="cart-items" class="cart-items"></div>
+    <div class="cart-footer">
+      <div class="total"><span>Total estimado</span><strong id="cart-total">$ 0</strong></div>
+      <small>El color y los detalles se coordinan al confirmar el pedido.</small>
+      <button id="whatsapp" class="whatsapp">Consultar por WhatsApp</button>
+    </div>
+  </aside>
+  <div id="overlay" class="overlay"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
