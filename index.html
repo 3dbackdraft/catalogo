@@ -48,6 +48,31 @@
     </section>
   </main>
 
+  <section id="product-modal" class="product-modal" role="dialog" aria-modal="true" aria-labelledby="detail-name" aria-hidden="true">
+    <div class="detail-card">
+      <button id="close-detail" class="detail-close" aria-label="Cerrar detalle">×</button>
+      <div id="detail-image" class="detail-image"></div>
+      <div class="detail-content">
+        <p id="detail-category" class="eyebrow"></p>
+        <h2 id="detail-name"></h2>
+        <p id="detail-description" class="detail-description"></p>
+        <dl class="detail-table">
+          <div><dt>Código</dt><dd id="detail-code"></dd></div>
+          <div><dt>Material</dt><dd id="detail-material"></dd></div>
+          <div><dt>Medida</dt><dd id="detail-size"></dd></div>
+          <div><dt>Presentación</dt><dd id="detail-pack"></dd></div>
+          <div><dt>Personalización</dt><dd>Colores y detalles a elección</dd></div>
+          <div><dt>Colores disponibles</dt><dd>Todos los colores disponibles</dd></div>
+          <div><dt>Producción</dt><dd>Aproximadamente 3 días</dd></div>
+        </dl>
+        <div class="detail-buy">
+          <strong id="detail-price"></strong>
+          <button id="detail-add" class="add">Agregar al carrito</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <aside id="cart" class="cart" aria-hidden="true">
     <div class="cart-head"><div><p class="eyebrow">Tu selección</p><h2>Carrito</h2></div><button id="close-cart" aria-label="Cerrar">×</button></div>
     <div id="cart-items" class="cart-items"></div>

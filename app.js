@@ -34,7 +34,7 @@ function renderProducts(){
   document.querySelector("#result-count").textContent = `${filtered.length} producto${filtered.length===1?"":"s"}`;
   document.querySelector("#empty").hidden = filtered.length>0;
   productsNode.innerHTML = filtered.map(product=>`
-    <article class="product">
+    <article class="product" data-product-code="${escapeHtml(product.codigo)}" tabindex="0" role="button" aria-label="Ver detalles de ${escapeHtml(product.producto)}">
       <div class="product-image">
         ${product.fotoPrincipal?`<img src="${escapeHtml(product.fotoPrincipal)}" alt="${escapeHtml(product.producto)}" loading="lazy">`:`<span class="placeholder">3D</span>`}
         ${product.destacado?'<span class="badge">DESTACADO</span>':""}
@@ -47,6 +47,18 @@ function renderProducts(){
       </div>
     </article>`).join("");
   productsNode.querySelectorAll(".add").forEach(button=>button.onclick=()=>addToCart(button.dataset.code));
+  productsNode.querySelectorAll(".product").forEach(card=>{
+    card.addEventListener("click",event=>{
+      if(event.target.closest(".add")) return;
+      openProductDetail(card.dataset.productCode);
+    });
+    card.addEventListener("keydown",event=>{
+      if(event.key==="Enter"||event.key===" "){
+        event.preventDefault();
+        openProductDetail(card.dataset.productCode);
+      }
+    });
+  });
 }
 
 function addToCart(code){
@@ -69,11 +81,48 @@ function saveCart(){
 
 function openCart(){document.querySelector("#cart").classList.add("open");document.querySelector("#overlay").classList.add("open");document.querySelector("#cart").setAttribute("aria-hidden","false");document.querySelector("#cart-button").setAttribute("aria-expanded","true")}
 function closeCart(){document.querySelector("#cart").classList.remove("open");document.querySelector("#overlay").classList.remove("open");document.querySelector("#cart").setAttribute("aria-hidden","true");document.querySelector("#cart-button").setAttribute("aria-expanded","false")}
+
+function openProductDetail(code){
+  const product = products.find(item=>item.codigo===code);
+  if(!product) return;
+  const imageNode = document.querySelector("#detail-image");
+  imageNode.innerHTML = product.fotoPrincipal
+    ? `<img src="${escapeHtml(product.fotoPrincipal)}" alt="${escapeHtml(product.producto)}">`
+    : '<span class="placeholder">3D</span>';
+  document.querySelector("#detail-category").textContent = product.categoria || "Producto 3D";
+  document.querySelector("#detail-name").textContent = product.producto;
+  document.querySelector("#detail-description").textContent = product.descripcion || "Pieza fabricada especialmente para vos.";
+  document.querySelector("#detail-code").textContent = product.codigo || "—";
+  document.querySelector("#detail-material").textContent = product.material || "PLA";
+  document.querySelector("#detail-size").textContent = product.tamano || "A consultar";
+  document.querySelector("#detail-pack").textContent = `${product.cantidadPack || 1} unidad${Number(product.cantidadPack)===1?"":"es"}`;
+  document.querySelector("#detail-price").textContent = money(product.precioVenta);
+  document.querySelector("#detail-add").dataset.code = product.codigo;
+  document.querySelector("#product-modal").classList.add("open");
+  document.querySelector("#product-modal").setAttribute("aria-hidden","false");
+  document.body.classList.add("no-scroll");
+  document.querySelector("#close-detail").focus();
+}
+
+function closeProductDetail(){
+  document.querySelector("#product-modal").classList.remove("open");
+  document.querySelector("#product-modal").setAttribute("aria-hidden","true");
+  document.body.classList.remove("no-scroll");
+}
+
 document.querySelector("#cart-button").onclick=openCart;
 document.querySelector("#close-cart").onclick=closeCart;
 document.querySelector("#overlay").onclick=closeCart;
+document.querySelector("#close-detail").onclick=closeProductDetail;
+document.querySelector("#product-modal").addEventListener("click",event=>{
+  if(event.target===event.currentTarget) closeProductDetail();
+});
+document.querySelector("#detail-add").onclick=event=>{
+  addToCart(event.currentTarget.dataset.code);
+  closeProductDetail();
+};
 searchNode.addEventListener("input",renderProducts);
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCart()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeProductDetail()}});
 
 document.querySelector("#whatsapp").onclick=()=>{
   if(!cart.length) return;
