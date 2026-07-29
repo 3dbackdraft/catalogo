@@ -2,6 +2,10 @@
 
 Catálogo público conectado a la misma planilla utilizada por el panel de productos.
 
+Reconoce todas las filas cuyo código de la columna A comienza con `3DB`.
+Incluye búsqueda, filtros por categoría y subcategoría, galería de fotos,
+detalle del producto, carrito y consulta por WhatsApp.
+
 ## Activación
 
 1. Completar en `config.js` la URL `/exec` de Apps Script.
