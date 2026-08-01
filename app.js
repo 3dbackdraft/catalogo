@@ -8,6 +8,8 @@ let cart = JSON.parse(localStorage.getItem("3db-cart") || "[]");
 let detailImages = [];
 let detailImageIndex = 0;
 let activeDetailCode = "";
+let imageObserver = null;
+const imageRequests = new Map();
 
 const money = value => Number(value) > 0
   ? new Intl.NumberFormat("es-AR", {
@@ -42,6 +44,45 @@ function populateCategoryFilters() {
     ? current
     : "Todos";
   populateSubcategoryFilter();
+}
+
+function renderCategoryGateway() {
+  const counts = products.reduce((result, product) => {
+    const category = product.categoria || "Sin categoría";
+    result[category] = (result[category] || 0) + 1;
+    return result;
+  }, {});
+  const categories = Object.keys(counts).sort((a, b) =>
+    a.localeCompare(b)
+  );
+  document.querySelector("#category-buttons").innerHTML = [
+    `<button class="category-button" data-category="Todos"><span>Todas las piezas <b>→</b></span><small>${products.length} productos</small></button>`,
+    ...categories.map(category => `
+      <button class="category-button" data-category="${escapeHtml(category)}">
+        <span>${escapeHtml(category)} <b>→</b></span>
+        <small>${counts[category]} producto${counts[category] === 1 ? "" : "s"}</small>
+      </button>
+    `)
+  ].join("");
+  document.querySelectorAll(".category-button").forEach(button => {
+    button.onclick = () => openCategory(button.dataset.category);
+  });
+}
+
+function openCategory(category) {
+  categoryFilter.value = category;
+  populateSubcategoryFilter();
+  document.querySelector("#selected-category-title").textContent =
+    category === "Todos" ? "Todas las piezas" : category;
+  document.querySelector("#category-gateway").hidden = true;
+  document.querySelector("#product-browser").hidden = false;
+  renderProducts();
+}
+
+function showCategoryGateway() {
+  document.querySelector("#product-browser").hidden = true;
+  document.querySelector("#category-gateway").hidden = false;
+  if (imageObserver) imageObserver.disconnect();
 }
 
 function populateSubcategoryFilter() {
@@ -107,7 +148,7 @@ function renderProducts() {
       <div class="product-image">
         ${product.fotoPrincipal
           ? `<img src="${escapeHtml(product.fotoPrincipal)}" alt="${escapeHtml(product.producto)}" loading="lazy">`
-          : '<span class="placeholder">Sin foto</span>'}
+          : `<div class="image-loading" data-image-code="${escapeHtml(product.codigo)}" aria-label="Cargando foto"></div>`}
       </div>
       <div class="product-body">
         <small>${escapeHtml(product.categoria)}${product.subcategoria ? ` · ${escapeHtml(product.subcategoria)}` : ""}</small>
@@ -136,6 +177,48 @@ function renderProducts() {
       }
     });
   });
+  observeProductImages();
+}
+
+function observeProductImages() {
+  if (imageObserver) imageObserver.disconnect();
+  const targets = productsNode.querySelectorAll("[data-image-code]");
+  if (!("IntersectionObserver" in window)) {
+    targets.forEach(target => loadCardImage(target.dataset.imageCode));
+    return;
+  }
+  imageObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      imageObserver.unobserve(entry.target);
+      loadCardImage(entry.target.dataset.imageCode);
+    });
+  }, {rootMargin: "300px 0px"});
+  targets.forEach(target => imageObserver.observe(target));
+}
+
+async function loadCardImage(code) {
+  const product = products.find(item => item.codigo === code);
+  if (!product || product.fotoPrincipal) return;
+  if (!imageRequests.has(code)) {
+    imageRequests.set(code, fetch(
+      `${config.apiUrl}?action=images&code=${encodeURIComponent(code)}`
+    ).then(response => response.json()).catch(() => ({ok: false})));
+  }
+  const result = await imageRequests.get(code);
+  if (!result.ok || !Array.isArray(result.images)) return;
+  product.imagenes = result.images;
+  product.fotoPrincipal = result.images[0] || "";
+  document.querySelectorAll(`[data-image-code="${CSS.escape(code)}"]`)
+    .forEach(target => {
+      const container = target.closest(".product-image");
+      if (product.fotoPrincipal) {
+        container.innerHTML = `<img src="${escapeHtml(product.fotoPrincipal)}" alt="${escapeHtml(product.producto)}" loading="lazy">`;
+      } else {
+        target.outerHTML = '<span class="placeholder">Sin foto</span>';
+      }
+      container.classList.add("image-ready");
+    });
 }
 
 function addToCart(code) {
@@ -292,10 +375,12 @@ function openProductDetail(code) {
 async function loadDetailImages(code) {
   if (!config.apiUrl) return;
   try {
-    const response = await fetch(
-      `${config.apiUrl}?action=images&code=${encodeURIComponent(code)}`
-    );
-    const result = await response.json();
+    if (!imageRequests.has(code)) {
+      imageRequests.set(code, fetch(
+        `${config.apiUrl}?action=images&code=${encodeURIComponent(code)}`
+      ).then(response => response.json()));
+    }
+    const result = await imageRequests.get(code);
     if (
       !result.ok ||
       activeDetailCode !== code ||
@@ -362,9 +447,14 @@ document.querySelector("#detail-add").onclick = event => {
 searchNode.addEventListener("input", renderProducts);
 categoryFilter.addEventListener("change", () => {
   populateSubcategoryFilter();
+  document.querySelector("#selected-category-title").textContent =
+    categoryFilter.value === "Todos"
+      ? "Todas las piezas"
+      : categoryFilter.value;
   renderProducts();
 });
 subcategoryFilter.addEventListener("change", renderProducts);
+document.querySelector("#back-to-categories").onclick = showCategoryGateway;
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") {
     closeCart();
@@ -454,7 +544,8 @@ async function loadProducts() {
       /^3DB/i.test(String(product.codigo || ""))
     );
     populateCategoryFilters();
-    renderProducts();
+    renderCategoryGateway();
+    showCategoryGateway();
   } catch (error) {
     products = [];
     productsNode.innerHTML = "";
