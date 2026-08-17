@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Publicar Vaso Gol en Mercado Libre</title>
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color:#241036;background:#f7f4fb}
+    *{box-sizing:border-box}body{margin:0;padding:32px 18px}.panel{width:min(760px,100%);margin:auto;background:#fff;border:1px solid #e8def5;border-radius:22px;padding:28px;box-shadow:0 18px 55px #24103618}
+    h1{margin:0 0 8px;color:#4b2096;font-size:clamp(1.7rem,4vw,2.35rem)}.lead{margin:0 0 24px;color:#644d78}.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:1px solid #eee}.photos img:first-child{grid-column:span 2;grid-row:span 2}
+    dl{display:grid;grid-template-columns:170px 1fr;gap:10px 16px;margin:24px 0}dt{font-weight:750;color:#4b2096}dd{margin:0}.notice{padding:14px 16px;border-radius:12px;background:#f3edfb;color:#3f2761;line-height:1.45}.actions{display:flex;gap:12px;align-items:center;margin-top:22px;flex-wrap:wrap}button{border:0;border-radius:12px;background:#5424a8;color:#fff;font-weight:800;padding:14px 20px;font-size:1rem;cursor:pointer}button:disabled{opacity:.55;cursor:wait}#result{margin:18px 0 0;white-space:pre-wrap;line-height:1.45}#result.ok{color:#24752b}#result.error{color:#b42318}a{color:#5424a8;font-weight:750}
+    @media(max-width:600px){.panel{padding:20px}.photos{grid-template-columns:repeat(2,1fr)}dl{grid-template-columns:1fr;gap:4px}dd{margin-bottom:10px}}
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <h1>Vaso Gol listo para publicar</h1>
+    <p class="lead">Revisá el resumen y creá la publicación aprobada en Mercado Libre.</p>
+    <div class="photos" id="photos"></div>
+    <dl>
+      <dt>Título</dt><dd>Vaso Milkshake Fútbol Tapa Pelota Y Sorbete 200 Ml</dd>
+      <dt>Categoría</dt><dd>Vasos · MLA457489</dd>
+      <dt>Precio</dt><dd>$10.000</dd>
+      <dt>Stock</dt><dd>50 unidades</dd>
+      <dt>Publicación</dt><dd>Clásica</dd>
+      <dt>Marca / modelo</dt><dd>3D Backdraft · Vaso Gol</dd>
+      <dt>Contenido</dt><dd>Vaso, recipiente plástico interior, tapa pelota y sorbete</dd>
+    </dl>
+    <p class="notice">La primera imagen es la foto con fondo blanco. La publicación se identifica con el código 3DB-140 y usa una clave anti-duplicados.</p>
+    <div class="actions">
+      <button id="publish" type="button">Publicar en Mercado Libre</button>
+      <span id="status">Cuenta autorizada requerida.</span>
+    </div>
+    <p id="result" role="status"></p>
+  </main>
+  <script>
+    const pictureUrls = [
+      "/assets/mercadolibre/3db-140/01-fondo-blanco.png",
+      "/assets/mercadolibre/3db-140/02-contexto-partido.png",
+      "/assets/mercadolibre/3db-140/03-guia-medidas.png",
+      "/assets/mercadolibre/3db-140/04-foto-original.png",
+      "/assets/mercadolibre/3db-140/05-original-8232.jpg",
+      "/assets/mercadolibre/3db-140/06-original-8231.jpg"
+    ].map(path => new URL(path, location.origin).href);
+
+    const draft = {
+      confirmation: "APROBADO",
+      idempotency_key: "3DB140_20260817_V1",
+      title: "Vaso Milkshake Fútbol Tapa Pelota Y Sorbete 200 Ml",
+      category_id: "MLA457489",
+      price: 10000,
+      available_quantity: 50,
+      listing_type_id: "gold_special",
+      seller_custom_field: "3DB-140",
+      pictures: pictureUrls,
+      attributes: [
+        {id: "BRAND", value_name: "3D Backdraft"},
+        {id: "MODEL", value_name: "Vaso Gol"},
+        {id: "DRINKING_GLASS_PRODUCT_TYPE", value_id: "6530859"}
+      ],
+      sale_terms: [
+        {id: "MANUFACTURING_TIME", value_name: "3 días"}
+      ],
+      shipping: {
+        mode: "me2",
+        free_shipping: false,
+        local_pick_up: true
+      },
+      description: `VASO GOL MILKSHAKE CON TAPA PELOTA Y SORBETE
+
+Vaso milkshake con diseño futbolero, ideal para bebidas frías, cumpleaños, reuniones o para disfrutar mientras mirás un partido.
+
+CARACTERÍSTICAS
+- Capacidad: 200 ml.
+- Medidas aproximadas: 20 cm de alto y 10 cm de diámetro.
+- Se vende por unidad.
+- Incluye vaso, recipiente plástico interior, tapa con forma de pelota y sorbete.
+- Diseño exterior impreso en 3D.
+- Disponible en diferentes combinaciones de colores.
+- Fabricación estimada: 3 días.
+
+IMPORTANTE
+Los colores se coordinan luego de la compra. Las medidas pueden variar ligeramente debido al proceso de fabricación.
+
+Realizamos envíos a todo el país desde Pergamino, Buenos Aires.`
+    };
+
+    document.querySelector("#photos").innerHTML = pictureUrls
+      .map((url, index) => `<img src="${url}" alt="Foto ${index + 1} del Vaso Gol">`)
+      .join("");
+
+    const button = document.querySelector("#publish");
+    const status = document.querySelector("#status");
+    const result = document.querySelector("#result");
+
+    fetch("/api/mercadolibre/status", {credentials: "include"})
+      .then(response => response.json())
+      .then(data => {
+        status.textContent = data.connected
+          ? `Cuenta conectada: ${data.user.nickname}`
+          : "La cuenta no está conectada en este navegador.";
+        button.disabled = !data.connected;
+      })
+      .catch(() => {
+        status.textContent = "No se pudo comprobar la conexión.";
+        button.disabled = true;
+      });
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      result.className = "";
+      result.textContent = "Creando la publicación...";
+      try {
+        const response = await fetch("/api/mercadolibre/publish", {
+          method: "POST",
+          credentials: "include",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(draft)
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo publicar.");
+        result.className = "ok";
+        result.innerHTML = `Publicación creada correctamente: <a href="${data.item.permalink}" target="_blank" rel="noopener">${data.item.id}</a>${data.warning ? `<br>${data.warning}` : ""}`;
+      } catch (error) {
+        result.className = "error";
+        result.textContent = error.message;
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
