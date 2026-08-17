@@ -47,6 +47,7 @@ function cleanSaleTerms(values) {
 
 function listingFrom(body) {
   const title = text(body.title, 60);
+  const familyName = text(body.family_name, 60);
   const categoryId = text(body.category_id, 30);
   const price = number(body.price);
   const quantity = Math.floor(number(body.available_quantity));
@@ -75,6 +76,7 @@ function listingFrom(body) {
 
   return {
     title,
+    ...(familyName ? {family_name: familyName} : {}),
     category_id: categoryId,
     price,
     currency_id: "ARS",
