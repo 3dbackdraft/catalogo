@@ -30,16 +30,26 @@ module.exports = async function categories(req, res) {
         `/categories/${encodeURIComponent(categoryId)}/attributes`,
         {accessToken: result.session.accessToken}
       );
+      const requiredOnly = String(req.query.required_only || "") === "1";
+      const normalized = attributes.map(attribute => ({
+        id: attribute.id,
+        name: attribute.name,
+        valueType: attribute.value_type,
+        values: (attribute.values || []).map(value => ({
+          id: value.id,
+          name: value.name
+        })),
+        tags: attribute.tags || {}
+      }));
       return sendJson(res, 200, {
         ok: true,
         categoryId,
-        attributes: attributes.map(attribute => ({
-          id: attribute.id,
-          name: attribute.name,
-          valueType: attribute.value_type,
-          values: attribute.values || [],
-          tags: attribute.tags || {}
-        }))
+        requiredOnly,
+        attributes: requiredOnly
+          ? normalized.filter(attribute =>
+              Boolean(attribute.tags.required || attribute.tags.catalog_required)
+            )
+          : normalized
       });
     }
 
