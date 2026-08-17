@@ -17,3 +17,29 @@ dispositivo y genera una consulta de WhatsApp; no confirma compras ni procesa pa
 
 Las fotos visibles en el catálogo deben poder consultarse públicamente. Si una imagen no aparece,
 revisar el uso compartido del archivo o de la carpeta correspondiente en Google Drive.
+
+## Integración con Mercado Libre
+
+El proyecto incluye funciones de Vercel para autorizar la cuenta mediante OAuth con PKCE,
+consultar categorías y crear publicaciones únicamente después de recibir una confirmación
+explícita.
+
+Configurar estas variables en Vercel para los entornos necesarios:
+
+- `MELI_CLIENT_ID`: Client ID de la aplicación de Mercado Libre.
+- `MELI_CLIENT_SECRET`: clave secreta de la aplicación. Nunca debe guardarse en GitHub.
+- `MELI_REDIRECT_URI`: `https://catalogo-lovat-psi.vercel.app/api/mercadolibre/callback`.
+- `MELI_SESSION_SECRET`: valor aleatorio largo utilizado para cifrar la sesión.
+
+Rutas disponibles:
+
+- `/api/mercadolibre/authorize`: inicia la autorización de la cuenta.
+- `/api/mercadolibre/callback`: recibe y valida el código OAuth.
+- `/api/mercadolibre/status`: comprueba la conexión sin exponer tokens.
+- `/api/mercadolibre/categories`: busca categorías y sus atributos.
+- `/api/mercadolibre/publish`: crea una publicación confirmada.
+- `/api/mercadolibre/notifications`: recibe el callback configurado en la aplicación.
+
+Los tokens se guardan cifrados en una cookie `HttpOnly`, limitada a las rutas de Mercado Libre.
+Este diseño es adecuado para el flujo interactivo con aprobación por producto. Si se agregan
+procesos autónomos sin navegador, será necesario incorporar un almacén de secretos persistente.
