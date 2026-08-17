@@ -225,13 +225,28 @@ async function apiRequest(path, options = {}) {
 
 function publicError(error) {
   const status = Number(error.status) || 500;
+  const rawDetails = error && error.details && typeof error.details === "object"
+    ? error.details
+    : null;
+  const causes = Array.isArray(rawDetails && rawDetails.cause)
+    ? rawDetails.cause.slice(0, 20).map(cause => ({
+        code: String(cause.code || cause.cause_id || "").slice(0, 160),
+        message: String(cause.message || "").slice(0, 500),
+        references: Array.isArray(cause.references)
+          ? cause.references.slice(0, 20).map(reference =>
+              String(reference || "").slice(0, 240)
+            )
+          : []
+      }))
+    : [];
   return {
     status: status >= 400 && status < 600 ? status : 500,
     body: {
       ok: false,
       error: status === 500
         ? "No se pudo completar la operación con Mercado Libre."
-        : String(error.message || "Error de Mercado Libre")
+        : String(error.message || "Error de Mercado Libre"),
+      ...(causes.length ? {causes} : {})
     }
   };
 }
