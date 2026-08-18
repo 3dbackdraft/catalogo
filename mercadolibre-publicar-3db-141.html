@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Publicar Gorila Urbano en Mercado Libre</title>
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color:#241036;background:#f7f4fb}
+    *{box-sizing:border-box}body{margin:0;padding:32px 18px}.panel{width:min(900px,100%);margin:auto;background:#fff;border:1px solid #e8def5;border-radius:22px;padding:28px;box-shadow:0 18px 55px #24103618}
+    h1{margin:0 0 8px;color:#4b2096;font-size:clamp(1.7rem,4vw,2.35rem)}h2{color:#4b2096;font-size:1.15rem;margin:24px 0 12px}.lead{margin:0 0 24px;color:#644d78}.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.photos img{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:12px;border:1px solid #eee}.photos img:first-child{grid-column:span 2;grid-row:span 2}
+    dl{display:grid;grid-template-columns:190px 1fr;gap:10px 16px;margin:24px 0}dt{font-weight:750;color:#4b2096}dd{margin:0}.notice{padding:14px 16px;border-radius:12px;background:#f3edfb;color:#3f2761;line-height:1.45}.actions{display:flex;gap:12px;align-items:center;margin-top:22px;flex-wrap:wrap}button{border:0;border-radius:12px;background:#5424a8;color:#fff;font-weight:800;padding:14px 20px;font-size:1rem;cursor:pointer}button:disabled{opacity:.55;cursor:wait}select,input{width:100%;padding:11px 12px;border:1px solid #cdbde2;border-radius:10px;background:#fff;color:#241036;font:inherit}.field{display:grid;gap:6px;margin:10px 0}.field label{font-weight:700;color:#4b2096}.attribute-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}#result{margin:18px 0 0;white-space:pre-wrap;line-height:1.45}#result.ok{color:#24752b}#result.error{color:#b42318}.muted{color:#6d5a7d;font-size:.92rem}a{color:#5424a8;font-weight:750}
+    @media(max-width:650px){.panel{padding:20px}.photos{grid-template-columns:repeat(2,1fr)}dl{grid-template-columns:1fr;gap:4px}dd{margin-bottom:10px}.attribute-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <h1>Gorila Urbano listo para publicar</h1>
+    <p class="lead">Revisá la categoría detectada y creá la publicación aprobada en Mercado Libre.</p>
+    <div class="photos" id="photos"></div>
+    <dl>
+      <dt>Título optimizado</dt><dd>Muñeco Gorila Urbano Decorativo Impreso En 3D PLA 15 Cm</dd>
+      <dt>Categoría</dt><dd id="category-summary">Buscando la categoría oficial…</dd>
+      <dt>Precio de catálogo</dt><dd>$8.000</dd>
+      <dt>Precio Mercado Libre</dt><dd>$9.200 (incluye el 15% adicional)</dd>
+      <dt>Stock</dt><dd>50 unidades</dd>
+      <dt>Publicación</dt><dd>Clásica</dd>
+      <dt>Marca / modelo</dt><dd>3D Backdraft · Gorila Urbano</dd>
+      <dt>Contenido</dt><dd>Un muñeco decorativo con ropa personalizable</dd>
+    </dl>
+
+    <div class="field">
+      <label for="category">Categoría sugerida por Mercado Libre</label>
+      <select id="category" disabled><option>Buscando…</option></select>
+      <small class="muted">La selección se obtiene de Mercado Libre usando el nombre y las características del producto.</small>
+    </div>
+
+    <section id="required-section" hidden>
+      <h2>Datos requeridos por la categoría</h2>
+      <div id="required-attributes" class="attribute-grid"></div>
+    </section>
+
+    <p class="notice">La primera imagen es la foto con fondo blanco. La publicación se identifica con el código 3DB-141 y usa una clave anti-duplicados.</p>
+    <div class="actions">
+      <button id="publish" type="button" disabled>Publicar en Mercado Libre</button>
+      <span id="status">Comprobando la cuenta y la categoría…</span>
+    </div>
+    <p id="result" role="status"></p>
+  </main>
+  <script>
+    const pictureUrls = [
+      "/assets/mercadolibre/3db-141/01-fondo-blanco.jpg",
+      "/assets/mercadolibre/3db-141/02-contexto.jpg",
+      "/assets/mercadolibre/3db-141/03-medidas.jpg",
+      "/assets/mercadolibre/3db-141/04-promocional.jpg",
+      "/assets/mercadolibre/3db-141/05-original-8221.jpg",
+      "/assets/mercadolibre/3db-141/06-original-8219.jpg"
+    ].map(path => new URL(path, location.origin).href);
+
+    const categoryNode = document.querySelector("#category");
+    const categorySummary = document.querySelector("#category-summary");
+    const requiredSection = document.querySelector("#required-section");
+    const requiredNode = document.querySelector("#required-attributes");
+    const button = document.querySelector("#publish");
+    const status = document.querySelector("#status");
+    const result = document.querySelector("#result");
+    let connected = false;
+    let matches = [];
+    let discoveredAttributes = [];
+
+    document.querySelector("#photos").innerHTML = pictureUrls
+      .map((url, index) => `<img src="${url}" alt="Foto ${index + 1} de Gorila Urbano">`)
+      .join("");
+
+    const clean = value => String(value || "").trim();
+    const escapeHtml = value => clean(value).replace(/[&<>"']/g, character => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    })[character]);
+
+    function updateButton() {
+      button.disabled = !connected || !/^MLA\d+$/.test(categoryNode.value);
+    }
+
+    function categoryScore(match) {
+      const text = `${match.domainName || ""} ${match.categoryName || ""}`.toLowerCase();
+      let score = 0;
+      if (/decor|adorno|objeto para decorar/.test(text)) score += 8;
+      if (/figura|muñeco/.test(text)) score += 6;
+      if (/juguete/.test(text)) score += 2;
+      if (/vaso|ropa|mascota viva/.test(text)) score -= 10;
+      return score;
+    }
+
+    function inferredValue(attribute) {
+      const name = clean(attribute.name).toLowerCase();
+      if (/marca/.test(name)) return "3D Backdraft";
+      if (/modelo/.test(name)) return "Gorila Urbano";
+      if (/material/.test(name)) return "PLA";
+      if (/personaje|animal/.test(name)) return "Gorila";
+      if (/tipo de producto/.test(name)) return "Muñeco decorativo";
+      return "Gorila Urbano";
+    }
+
+    function matchingOption(attribute) {
+      const values = Array.isArray(attribute.values) ? attribute.values : [];
+      return values.find(value => /muñeco|figura|decor|gorila|mono|otro/i.test(value.name || "")) || values[0];
+    }
+
+    function renderRequired(attributes) {
+      const discoveredIds = new Set(discoveredAttributes.map(attribute => attribute.id));
+      const missing = attributes.filter(attribute => !discoveredIds.has(attribute.id));
+      requiredSection.hidden = missing.length === 0;
+      requiredNode.innerHTML = missing.map(attribute => {
+        const values = Array.isArray(attribute.values) ? attribute.values : [];
+        if (values.length) {
+          const selected = matchingOption(attribute);
+          return `<div class="field"><label>${escapeHtml(attribute.name)}</label><select data-attribute-id="${escapeHtml(attribute.id)}">${values.map(value => `<option value="${escapeHtml(value.id)}" data-name="${escapeHtml(value.name)}" ${selected && selected.id === value.id ? "selected" : ""}>${escapeHtml(value.name)}</option>`).join("")}</select></div>`;
+        }
+        return `<div class="field"><label>${escapeHtml(attribute.name)}</label><input data-attribute-id="${escapeHtml(attribute.id)}" value="${escapeHtml(inferredValue(attribute))}"></div>`;
+      }).join("");
+    }
+
+    async function loadRequired(categoryId) {
+      requiredSection.hidden = true;
+      requiredNode.innerHTML = "";
+      const response = await fetch(`/api/mercadolibre/categories?category_id=${encodeURIComponent(categoryId)}&required_only=1`, {credentials:"include"});
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || "No se pudieron consultar los datos de la categoría.");
+      renderRequired(data.attributes || []);
+    }
+
+    async function selectCategory(categoryId) {
+      const match = matches.find(item => item.categoryId === categoryId);
+      discoveredAttributes = Array.isArray(match?.attributes) ? match.attributes : [];
+      categorySummary.textContent = match
+        ? `${match.categoryName} · ${match.categoryId}`
+        : categoryId;
+      status.textContent = connected ? "Cuenta y categoría listas." : "La cuenta no está conectada en este navegador.";
+      await loadRequired(categoryId);
+      updateButton();
+    }
+
+    async function initialize() {
+      try {
+        const [accountResponse, categoryResponse] = await Promise.all([
+          fetch("/api/mercadolibre/status", {credentials:"include"}),
+          fetch("/api/mercadolibre/categories?q=muñeco%20gorila%20decorativo%20impreso%20en%203D", {credentials:"include"})
+        ]);
+        const account = await accountResponse.json();
+        const categoryData = await categoryResponse.json();
+        connected = Boolean(accountResponse.ok && account.connected);
+        if (!categoryResponse.ok || !categoryData.ok || !categoryData.matches?.length) {
+          throw new Error(categoryData.error || "Mercado Libre no devolvió categorías sugeridas.");
+        }
+        matches = [...categoryData.matches].sort((a,b) => categoryScore(b) - categoryScore(a));
+        categoryNode.innerHTML = matches.map(match => `<option value="${escapeHtml(match.categoryId)}">${escapeHtml(match.categoryName)} · ${escapeHtml(match.categoryId)}</option>`).join("");
+        categoryNode.disabled = false;
+        categoryNode.value = matches[0].categoryId;
+        await selectCategory(categoryNode.value);
+        status.textContent = connected
+          ? `Cuenta conectada: ${account.user.nickname}`
+          : "La cuenta no está conectada en este navegador.";
+        updateButton();
+      } catch (error) {
+        result.className = "error";
+        result.textContent = error.message;
+        status.textContent = "No se pudo completar la preparación.";
+      }
+    }
+
+    categoryNode.addEventListener("change", async () => {
+      button.disabled = true;
+      result.textContent = "";
+      try {
+        await selectCategory(categoryNode.value);
+      } catch (error) {
+        result.className = "error";
+        result.textContent = error.message;
+      }
+    });
+
+    function collectAttributes() {
+      const values = [...discoveredAttributes];
+      const add = attribute => {
+        const index = values.findIndex(item => item.id === attribute.id);
+        if (index >= 0) values[index] = {...values[index], ...attribute};
+        else values.push(attribute);
+      };
+      add({id:"BRAND", value_name:"3D Backdraft"});
+      add({id:"MODEL", value_name:"Gorila Urbano"});
+      add({id:"MATERIAL", value_name:"PLA"});
+      requiredNode.querySelectorAll("[data-attribute-id]").forEach(field => {
+        const id = field.dataset.attributeId;
+        if (field.tagName === "SELECT") {
+          const option = field.selectedOptions[0];
+          add({id, value_id:field.value, value_name:option?.dataset.name || option?.textContent || ""});
+        } else {
+          add({id, value_name:field.value});
+        }
+      });
+      return values.filter(attribute => attribute.id && (attribute.value_id || attribute.value_name));
+    }
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      result.className = "";
+      result.textContent = "Creando la publicación…";
+      const draft = {
+        confirmation:"APROBADO",
+        idempotency_key:"3DB141_20260818_V1",
+        family_name:"Muñeco Gorila Urbano Decorativo Impreso En 3D PLA 15 Cm",
+        category_id:categoryNode.value,
+        price:9200,
+        available_quantity:50,
+        listing_type_id:"gold_special",
+        seller_custom_field:"3DB-141",
+        pictures:pictureUrls,
+        attributes:collectAttributes(),
+        sale_terms:[{id:"MANUFACTURING_TIME",value_name:"3 días"}],
+        shipping:{mode:"me2",free_shipping:false,local_pick_up:true},
+        description:`MUÑECO GORILA URBANO DECORATIVO IMPRESO EN 3D
+
+Gorila Urbano es un muñeco decorativo con un diseño original y lleno de personalidad. Ideal para decorar escritorios, estantes, habitaciones, oficinas o espacios dedicados a colecciones.
+
+Su ropa se puede personalizar con diferentes combinaciones de colores para crear una pieza adaptada a tu estilo.
+
+CARACTERÍSTICAS
+
+- Producto: muñeco decorativo Gorila Urbano.
+- Material: PLA.
+- Fabricado mediante impresión 3D.
+- Altura aproximada: 15 cm.
+- Ancho aproximado: 8 cm.
+- Ropa personalizable.
+- Disponible en diferentes combinaciones de colores.
+- Se vende por unidad.
+- La compra incluye un muñeco.
+- Tiempo estimado de fabricación: 3 días.
+
+PERSONALIZACIÓN
+
+Luego de realizar la compra, coordinamos los colores de la ropa. La variante mostrada en las fotografías combina tonos naranja, verde, amarillo y azul con short blanco.
+
+IMPORTANTE
+
+Las medidas son aproximadas.
+
+Producto destinado principalmente a decoración y colección.
+
+Realizamos envíos a todo el país desde Pergamino, Buenos Aires.`
+      };
+      try {
+        const response = await fetch("/api/mercadolibre/publish", {
+          method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(draft)
+        });
+        const text = await response.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch (_) { throw new Error(text || `Error HTTP ${response.status}`); }
+        if (!response.ok || !data.ok) {
+          const details = Array.isArray(data.causes) ? data.causes.flatMap(cause => [cause.message, ...(cause.references || [])]).filter(Boolean) : [];
+          throw new Error([data.error || "No se pudo publicar.", ...details, data.diagnostic || ""].filter(Boolean).join("\n"));
+        }
+        result.className = "ok";
+        result.innerHTML = `Publicación creada correctamente: <a href="${data.item.permalink}" target="_blank" rel="noopener">${data.item.id}</a>${data.warning ? `<br>${data.warning}` : ""}`;
+      } catch (error) {
+        result.className = "error";
+        result.textContent = error.message;
+        button.disabled = false;
+      }
+    });
+
+    initialize();
+  </script>
+</body>
+</html>
