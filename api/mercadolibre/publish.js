@@ -59,7 +59,7 @@ function listingFrom(body) {
       )).filter(value => /^https:\/\//i.test(value))
     : [];
 
-  if (!title) throw Object.assign(new Error("Falta el título."), {status: 400});
+  if (!title && !familyName) {\n    throw Object.assign(new Error("Falta el título o la familia del producto."), {status: 400});\n  }
   if (!/^MLA\d+$/.test(categoryId)) {
     throw Object.assign(new Error("La categoría de Mercado Libre es inválida."), {status: 400});
   }
