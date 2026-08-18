@@ -59,7 +59,12 @@ function listingFrom(body) {
       )).filter(value => /^https:\/\//i.test(value))
     : [];
 
-  if (!title && !familyName) {\n    throw Object.assign(new Error("Falta el título o la familia del producto."), {status: 400});\n  }
+  if (!title && !familyName) {
+    throw Object.assign(
+      new Error("Falta el título o la familia del producto."),
+      {status: 400}
+    );
+  }
   if (!/^MLA\d+$/.test(categoryId)) {
     throw Object.assign(new Error("La categoría de Mercado Libre es inválida."), {status: 400});
   }
@@ -75,8 +80,7 @@ function listingFrom(body) {
   }
 
   return {
-    title,
-    ...(familyName ? {family_name: familyName} : {}),
+    ...(familyName ? {family_name: familyName} : {title}),
     category_id: categoryId,
     price,
     currency_id: "ARS",
