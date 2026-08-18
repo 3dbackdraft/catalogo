@@ -131,7 +131,8 @@ Realizamos envíos a todo el país desde Pergamino, Buenos Aires.`
             : [];
           throw new Error([
             data.error || "No se pudo publicar.",
-            ...details
+            ...details,
+            data.diagnostic || ""
           ].filter(Boolean).join("\n"));
         }
         result.className = "ok";

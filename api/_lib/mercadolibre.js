@@ -239,6 +239,9 @@ function publicError(error) {
           : []
       }))
     : [];
+  const diagnostic = rawDetails && status >= 400 && status < 500
+    ? JSON.stringify(rawDetails).slice(0, 8000)
+    : "";
   return {
     status: status >= 400 && status < 600 ? status : 500,
     body: {
@@ -246,7 +249,8 @@ function publicError(error) {
       error: status === 500
         ? "No se pudo completar la operación con Mercado Libre."
         : String(error.message || "Error de Mercado Libre"),
-      ...(causes.length ? {causes} : {})
+      ...(causes.length ? {causes} : {}),
+      ...(diagnostic ? {diagnostic} : {})
     }
   };
 }
